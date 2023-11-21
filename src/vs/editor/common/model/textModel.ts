@@ -1769,6 +1769,10 @@ export class TextModel extends Disposable implements model.ITextModel, IDecorati
 		return this._decorationsTree.getAll(this, ownerId, false, false, true);
 	}
 
+	public getAllTextDecorations(ownerId: number = 0): model.IModelDecoration[] {
+		return this._decorationsTree.getAllTextDecorations(this, ownerId);
+	}
+
 	private _getDecorationsInRange(filterRange: Range, filterOwnerId: number, filterOutValidation: boolean, onlyMarginDecorations: boolean): model.IModelDecoration[] {
 		const startOffset = this._buffer.getOffsetAt(filterRange.startLineNumber, filterRange.startColumn);
 		const endOffset = this._buffer.getOffsetAt(filterRange.endLineNumber, filterRange.endColumn);
@@ -2074,6 +2078,12 @@ class DecorationsTrees {
 		const versionId = host.getVersionId();
 		const result = this._injectedTextDecorationsTree.search(filterOwnerId, false, versionId, false);
 		return this._ensureNodesHaveRanges(host, result).filter((i) => i.options.showIfCollapsed || !i.range.isEmpty());
+	}
+
+	public getAllTextDecorations(host: IDecorationsTreesHost, filterOwnerId: number): model.IModelDecoration[] {
+		const versionId = host.getVersionId();
+		const result = this._decorationsTree0.search(filterOwnerId, true, versionId, false);
+		return this._ensureNodesHaveRanges(host, result);
 	}
 
 	public getAll(host: IDecorationsTreesHost, filterOwnerId: number, filterOutValidation: boolean, overviewRulerOnly: boolean, onlyMarginDecorations: boolean): model.IModelDecoration[] {
