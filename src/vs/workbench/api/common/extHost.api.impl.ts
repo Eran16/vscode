@@ -107,6 +107,7 @@ import { checkProposedApiEnabled, isProposedApiEnabled } from 'vs/workbench/serv
 import { ProxyIdentifier } from 'vs/workbench/services/extensions/common/proxyIdentifier';
 import { TextSearchCompleteMessageType } from 'vs/workbench/services/search/common/searchExtTypes';
 import type * as vscode from 'vscode';
+import { ExtHostChatSkills } from 'vs/workbench/api/common/extHostChatSkill';
 
 export interface IExtensionRegistries {
 	mine: ExtensionDescriptionRegistry;
@@ -211,6 +212,7 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 	rpcProtocol.set(ExtHostContext.ExtHostInteractive, new ExtHostInteractive(rpcProtocol, extHostNotebook, extHostDocumentsAndEditors, extHostCommands, extHostLogService));
 	const extHostChatAgents2 = rpcProtocol.set(ExtHostContext.ExtHostChatAgents2, new ExtHostChatAgents2(rpcProtocol, extHostLogService, extHostCommands, initData.quality));
 	const extHostChatVariables = rpcProtocol.set(ExtHostContext.ExtHostChatVariables, new ExtHostChatVariables(rpcProtocol));
+	const extHostChatSkills = rpcProtocol.set(ExtHostContext.ExtHostChatSkills, new ExtHostChatSkills(rpcProtocol));
 	const extHostAiRelatedInformation = rpcProtocol.set(ExtHostContext.ExtHostAiRelatedInformation, new ExtHostRelatedInformation(rpcProtocol));
 	const extHostAiEmbeddingVector = rpcProtocol.set(ExtHostContext.ExtHostAiEmbeddingVector, new ExtHostAiEmbeddingVector(rpcProtocol));
 	const extHostStatusBar = rpcProtocol.set(ExtHostContext.ExtHostStatusBar, new ExtHostStatusBar(rpcProtocol, extHostCommands.converter));
@@ -1430,6 +1432,18 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 				checkProposedApiEnabled(extension, 'chatParticipantPrivate');
 				return extHostChatAgents2.createDynamicChatAgent(extension, id, dynamicProps, handler);
 			},
+			registerTool(skill: vscode.ChatTool) {
+				checkProposedApiEnabled(extension, 'chatVariableResolver');
+				return extHostChatSkills.registerChatSkill(extension, skill);
+			},
+			invokeTool(skillName: string, parameters: Object, token: vscode.CancellationToken) {
+				checkProposedApiEnabled(extension, 'chatVariableResolver');
+				return extHostChatSkills.invokeSkill(skillName, parameters, token);
+			},
+			get tools() {
+				checkProposedApiEnabled(extension, 'chatVariableResolver');
+				return extHostChatSkills.skills;
+			}
 			attachContext(name: string, value: string | vscode.Uri | vscode.Location | unknown, location: vscode.ChatLocation.Panel) {
 				checkProposedApiEnabled(extension, 'chatVariableResolver');
 				return extHostChatVariables.attachContext(name, value, location);
