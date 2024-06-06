@@ -51,10 +51,10 @@ export class CustomEditorLabelService extends Disposable implements ICustomEdito
 		this.storeEnablementState();
 		this.storeCustomPatterns();
 
-		this.registerListernes();
+		this.registerListeners();
 	}
 
-	private registerListernes(): void {
+	private registerListeners(): void {
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
 			// Cache the enabled state
 			if (e.affectsConfiguration(CustomEditorLabelService.SETTING_ID_ENABLED)) {
@@ -148,29 +148,35 @@ export class CustomEditorLabelService extends Disposable implements ICustomEdito
 			}
 
 			if (pattern.parsedPattern(relevantPath)) {
-				return this.applyTempate(pattern.template, resource, relevantPath);
+				return this.applyTemplate(pattern.template, resource, relevantPath);
 			}
 		}
 
 		return undefined;
 	}
 
-	private readonly _parsedTemplateExpression = /\$\{(dirname|filename|extname|dirname\(([-+]?\d+)\))\}/g;
-	private applyTempate(template: string, resource: URI, relevantPath: string): string {
+	private readonly _parsedTemplateExpression = /\$\{(dirname|filename|extname\((?<extnameN>[-+]?\d+)\)|dirname\((?<dirnameN>[-+]?\d+)\))\}/g;
+	private applyTemplate(template: string, resource: URI, relevantPath: string): string {
 		let parsedPath: undefined | ParsedPath;
-		return template.replace(this._parsedTemplateExpression, (match: string, variable: string, arg: string) => {
+		return template.replace(this._parsedTemplateExpression, (match: string, variable: string, ...args: any[]) => {
 			parsedPath = parsedPath ?? parsePath(resource.path);
-			switch (variable) {
-				case 'filename':
-					return parsedPath.name;
-				case 'extname':
-					return parsedPath.ext.slice(1);
-				default: { // dirname and dirname(arg)
-					const n = variable === 'dirname' ? 0 : parseInt(arg);
-					const nthDir = this.getNthDirname(dirname(relevantPath), n);
-					if (nthDir) {
-						return nthDir;
-					}
+			// named group matches
+			const { dirnameN = '0', extnameN = '0' }: { dirnameN?: string; extnameN?: string } = args.pop();
+
+			if (variable === 'filename') {
+				return parsedPath.name;
+			} else if (variable === 'extname') {
+				return parsedPath.base.split('.').slice(1).join('.');
+			} else if (variable.startsWith('extname')) {
+				const n = parseInt(extnameN);
+				const extensionName = parsedPath.base;
+				const nthExtname = this.getNthExtname(extensionName, n);
+				return nthExtname ?? variable;
+			} else if (variable.startsWith('dirname')) {
+				const n = parseInt(dirnameN);
+				const nthDir = this.getNthDirname(dirname(relevantPath), n);
+				if (nthDir) {
+					return nthDir;
 				}
 			}
 
@@ -183,7 +189,19 @@ export class CustomEditorLabelService extends Disposable implements ICustomEdito
 		path = path.startsWith('/') ? path.slice(1) : path;
 		const pathFragments = path.split('/');
 
-		const length = pathFragments.length;
+		return this.getNthFragment(pathFragments, n);
+	}
+
+	private getNthExtname(fullFileName: string, n: number): string | undefined {
+		// file.ext1.ext2.ext3 -> [file, ext1, ext2, ext3]
+		const extensionNameFragments = fullFileName.split('.');
+		extensionNameFragments.shift(); // remove the first element which is the file name
+
+		return this.getNthFragment(extensionNameFragments, n);
+	}
+
+	private getNthFragment(fragments: string[], n: number): string | undefined {
+		const length = fragments.length;
 
 		let nth;
 		if (n < 0) {
@@ -192,11 +210,11 @@ export class CustomEditorLabelService extends Disposable implements ICustomEdito
 			nth = length - n - 1;
 		}
 
-		const nthDir = pathFragments[nth];
-		if (nthDir === undefined || nthDir === '') {
+		const nthFragment = fragments[nth];
+		if (nthFragment === undefined || nthFragment === '') {
 			return undefined;
 		}
-		return nthDir;
+		return nthFragment;
 	}
 }
 
