@@ -3,34 +3,25 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { createConnection, Connection, Disposable } from 'vscode-languageserver/node';
-import { formatError } from '../utils/runner';
-import { RuntimeEnvironment, startServer } from '../htmlServer';
-import { getNodeFileFS } from './nodeFs';
+import { createServer, createConnection } from '@volar/language-server/node';
+import { htmlLanguagePlugin } from '../modes/languagePlugin';
+import { createHtmlProject } from '../modes/project';
+import { getLanguageServicePlugins } from '../modes/servicePlugins';
 
+const connection = createConnection();
+const server = createServer(connection);
 
-// Create a connection for the server.
-const connection: Connection = createConnection();
-
-console.log = connection.console.log.bind(connection.console);
-console.error = connection.console.error.bind(connection.console);
-
-process.on('unhandledRejection', (e: any) => {
-	connection.console.error(formatError(`Unhandled exception`, e));
+connection.onInitialize(params => {
+	return server.initialize(
+		params,
+		getLanguageServicePlugins(),
+		createHtmlProject([htmlLanguagePlugin]),
+		{ pullModelDiagnostics: !!params.capabilities.textDocument?.diagnostic }
+	);
 });
 
-const runtime: RuntimeEnvironment = {
-	timer: {
-		setImmediate(callback: (...args: any[]) => void, ...args: any[]): Disposable {
-			const handle = setImmediate(callback, ...args);
-			return { dispose: () => clearImmediate(handle) };
-		},
-		setTimeout(callback: (...args: any[]) => void, ms: number, ...args: any[]): Disposable {
-			const handle = setTimeout(callback, ms, ...args);
-			return { dispose: () => clearTimeout(handle) };
-		}
-	},
-	fileFs: getNodeFileFS()
-};
+connection.onInitialized(server.initialized);
 
-startServer(connection, runtime);
+connection.onShutdown(server.shutdown);
+
+connection.listen();

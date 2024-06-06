@@ -2,13 +2,13 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import 'mocha';
+import { CompletionItemKind, CompletionList, TextDocument, TextEdit, WorkspaceFolder } from '@volar/language-server';
 import * as assert from 'assert';
+import 'mocha';
 import * as path from 'path';
 import { URI } from 'vscode-uri';
-import { getLanguageModes, WorkspaceFolder, TextDocument, CompletionList, CompletionItemKind, ClientCapabilities, TextEdit } from '../modes/languageModes';
-import { getNodeFileFS } from '../node/nodeFs';
-import { getDocumentContext } from '../utils/documentContext';
+import { getTestService } from './shared';
+
 export interface ItemDescription {
 	label: string;
 	documentation?: string;
@@ -44,25 +44,18 @@ export function assertCompletion(completions: CompletionList, expected: ItemDesc
 	}
 }
 
-const testUri = 'test://test/test.html';
-
-export async function testCompletionFor(value: string, expected: { count?: number; items?: ItemDescription[] }, uri = testUri, workspaceFolders?: WorkspaceFolder[]): Promise<void> {
+export async function testCompletionFor(value: string, expected: { count?: number; items?: ItemDescription[] }, uri?: string, workspaceFolder?: WorkspaceFolder): Promise<void> {
 	const offset = value.indexOf('|');
 	value = value.substr(0, offset) + value.substr(offset + 1);
 
-	const workspace = {
-		settings: {},
-		folders: workspaceFolders || [{ name: 'x', uri: uri.substr(0, uri.lastIndexOf('/')) }]
-	};
-
-	const document = TextDocument.create(uri, 'html', 0, value);
+	const { document, languageService } = await getTestService({
+		uri,
+		workspaceFolder: workspaceFolder?.uri,
+		content: value,
+	});
 	const position = document.positionAt(offset);
-	const context = getDocumentContext(uri, workspace.folders);
-
-	const languageModes = getLanguageModes({ css: true, javascript: true }, workspace, ClientCapabilities.LATEST, getNodeFileFS());
-	const mode = languageModes.getModeAtPosition(document, position)!;
-
-	const list = await mode.doComplete!(document, position, context);
+	const list = await languageService.doComplete(URI.parse(document.uri), position);
+	assert(!!list);
 
 	if (expected.count) {
 		assert.strictEqual(list.items.length, expected.count);
@@ -166,7 +159,7 @@ suite('HTML Path Completion', () => {
 				{ label: 'feature.js', resultText: '<script src="/src/feature.js">' },
 				{ label: 'test.js', resultText: '<script src="/src/test.js">' },
 			]
-		}, aboutHtmlUri, [fixtureWorkspace]);
+		}, aboutHtmlUri, fixtureWorkspace);
 	});
 
 	test('Empty Path Value', async () => {
@@ -193,14 +186,14 @@ suite('HTML Path Completion', () => {
 				{ label: 'feature.js', resultText: '<script src="/src/feature.js">' },
 				{ label: 'test.js', resultText: '<script src="/src/test.js">' },
 			]
-		}, aboutHtmlUri, [fixtureWorkspace]);
+		}, aboutHtmlUri, fixtureWorkspace);
 
 		await testCompletionFor('<script src="../src/f|">', {
 			items: [
 				{ label: 'feature.js', resultText: '<script src="../src/feature.js">' },
 				{ label: 'test.js', resultText: '<script src="../src/test.js">' },
 			]
-		}, aboutHtmlUri, [fixtureWorkspace]);
+		}, aboutHtmlUri, fixtureWorkspace);
 	});
 
 	test('No leading dot or slash', async () => {
@@ -211,21 +204,21 @@ suite('HTML Path Completion', () => {
 				{ label: 'index.html', resultText: '<script src="index.html">' },
 				{ label: 'src/', resultText: '<script src="src/">' },
 			]
-		}, indexHtmlUri, [fixtureWorkspace]);
+		}, indexHtmlUri, fixtureWorkspace);
 
 		await testCompletionFor('<script src="src/|">', {
 			items: [
 				{ label: 'feature.js', resultText: '<script src="src/feature.js">' },
 				{ label: 'test.js', resultText: '<script src="src/test.js">' },
 			]
-		}, indexHtmlUri, [fixtureWorkspace]);
+		}, indexHtmlUri, fixtureWorkspace);
 
 		await testCompletionFor('<script src="src/f|">', {
 			items: [
 				{ label: 'feature.js', resultText: '<script src="src/feature.js">' },
 				{ label: 'test.js', resultText: '<script src="src/test.js">' },
 			]
-		}, indexHtmlUri, [fixtureWorkspace]);
+		}, indexHtmlUri, fixtureWorkspace);
 
 		// document: about.html
 		await testCompletionFor('<script src="s|">', {
@@ -234,19 +227,19 @@ suite('HTML Path Completion', () => {
 				{ label: 'about.html', resultText: '<script src="about.html">' },
 				{ label: 'media/', resultText: '<script src="media/">' },
 			]
-		}, aboutHtmlUri, [fixtureWorkspace]);
+		}, aboutHtmlUri, fixtureWorkspace);
 
 		await testCompletionFor('<script src="media/|">', {
 			items: [
 				{ label: 'icon.pic', resultText: '<script src="media/icon.pic">' }
 			]
-		}, aboutHtmlUri, [fixtureWorkspace]);
+		}, aboutHtmlUri, fixtureWorkspace);
 
 		await testCompletionFor('<script src="media/f|">', {
 			items: [
 				{ label: 'icon.pic', resultText: '<script src="media/icon.pic">' }
 			]
-		}, aboutHtmlUri, [fixtureWorkspace]);
+		}, aboutHtmlUri, fixtureWorkspace);
 	});
 
 	test('Trigger completion in middle of path', async () => {
@@ -256,7 +249,7 @@ suite('HTML Path Completion', () => {
 				{ label: 'feature.js', resultText: '<script src="src/feature.js">' },
 				{ label: 'test.js', resultText: '<script src="src/test.js">' },
 			]
-		}, indexHtmlUri, [fixtureWorkspace]);
+		}, indexHtmlUri, fixtureWorkspace);
 
 		await testCompletionFor('<script src="s|rc/feature.js">', {
 			items: [
@@ -264,14 +257,14 @@ suite('HTML Path Completion', () => {
 				{ label: 'index.html', resultText: '<script src="index.html">' },
 				{ label: 'src/', resultText: '<script src="src/">' },
 			]
-		}, indexHtmlUri, [fixtureWorkspace]);
+		}, indexHtmlUri, fixtureWorkspace);
 
 		// document: about.html
 		await testCompletionFor('<script src="media/f|eature.js">', {
 			items: [
 				{ label: 'icon.pic', resultText: '<script src="media/icon.pic">' }
 			]
-		}, aboutHtmlUri, [fixtureWorkspace]);
+		}, aboutHtmlUri, fixtureWorkspace);
 
 		await testCompletionFor('<script src="m|edia/feature.js">', {
 			items: [
@@ -279,7 +272,7 @@ suite('HTML Path Completion', () => {
 				{ label: 'about.html', resultText: '<script src="about.html">' },
 				{ label: 'media/', resultText: '<script src="media/">' },
 			]
-		}, aboutHtmlUri, [fixtureWorkspace]);
+		}, aboutHtmlUri, fixtureWorkspace);
 	});
 
 
@@ -290,7 +283,7 @@ suite('HTML Path Completion', () => {
 				{ label: 'index.html', resultText: '<script src="./index.html about/about.html>' },
 				{ label: 'src/', resultText: '<script src="./src/ about/about.html>' },
 			]
-		}, indexHtmlUri, [fixtureWorkspace]);
+		}, indexHtmlUri, fixtureWorkspace);
 
 		await testCompletionFor('<script src="./a|bout /about.html>', {
 			items: [
@@ -298,18 +291,18 @@ suite('HTML Path Completion', () => {
 				{ label: 'index.html', resultText: '<script src="./index.html /about.html>' },
 				{ label: 'src/', resultText: '<script src="./src/ /about.html>' },
 			]
-		}, indexHtmlUri, [fixtureWorkspace]);
+		}, indexHtmlUri, fixtureWorkspace);
 	});
 
 	test('Completion should ignore files/folders starting with dot', async () => {
 		await testCompletionFor('<script src="./|"', {
 			count: 3
-		}, indexHtmlUri, [fixtureWorkspace]);
+		}, indexHtmlUri, fixtureWorkspace);
 	});
 
 	test('Unquoted Path', async () => {
 		/* Unquoted value is not supported in html language service yet
-		testCompletionFor(`<div><a href=about/|>`, {
+		await testCompletionFor(`<div><a href=about/|>`, {
 			items: [
 				{ label: 'about.html', resultText: `<div><a href=about/about.html>` }
 			]

@@ -9,11 +9,14 @@
   },
   "main": "./out/node/htmlServerMain",
   "dependencies": {
+    "@volar/language-server": "~2.3.0-alpha.2",
+    "@volar/language-service": "~2.3.0-alpha.2",
+    "@volar/typescript": "~2.3.0-alpha.2",
     "@vscode/l10n": "^0.0.18",
-    "vscode-css-languageservice": "^6.2.13",
+    "volar-service-css": "0.0.49",
+    "volar-service-html": "0.0.49",
+    "volar-service-typescript": "0.0.49",
     "vscode-html-languageservice": "^5.2.0",
-    "vscode-languageserver": "^10.0.0-next.2",
-    "vscode-languageserver-textdocument": "^1.0.11",
     "vscode-uri": "^3.0.8"
   },
   "devDependencies": {

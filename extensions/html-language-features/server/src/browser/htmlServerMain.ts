@@ -3,28 +3,24 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { createConnection, BrowserMessageReader, BrowserMessageWriter, Disposable } from 'vscode-languageserver/browser';
-import { RuntimeEnvironment, startServer } from '../htmlServer';
+import { createServer, createConnection, createSimpleProject } from '@volar/language-server/node';
+import { htmlLanguagePlugin } from '../modes/languagePlugin';
+import { getLanguageServicePlugins } from '../modes/servicePlugins';
 
-const messageReader = new BrowserMessageReader(self);
-const messageWriter = new BrowserMessageWriter(self);
+const connection = createConnection();
+const server = createServer(connection);
 
-const connection = createConnection(messageReader, messageWriter);
+connection.onInitialize(params => {
+	return server.initialize(
+		params,
+		getLanguageServicePlugins(),
+		createSimpleProject([htmlLanguagePlugin]),
+		{ pullModelDiagnostics: !!params.capabilities.textDocument?.diagnostic }
+	);
+});
 
-console.log = connection.console.log.bind(connection.console);
-console.error = connection.console.error.bind(connection.console);
+connection.onInitialized(server.initialized);
 
-const runtime: RuntimeEnvironment = {
-	timer: {
-		setImmediate(callback: (...args: any[]) => void, ...args: any[]): Disposable {
-			const handle = setTimeout(callback, 0, ...args);
-			return { dispose: () => clearTimeout(handle) };
-		},
-		setTimeout(callback: (...args: any[]) => void, ms: number, ...args: any[]): Disposable {
-			const handle = setTimeout(callback, ms, ...args);
-			return { dispose: () => clearTimeout(handle) };
-		}
-	}
-};
+connection.onShutdown(server.shutdown);
 
-startServer(connection, runtime);
+connection.listen();
