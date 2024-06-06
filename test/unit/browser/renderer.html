@@ -9,7 +9,7 @@
 <body>
 	<div id="mocha"></div>
 	<script src="../../../node_modules/mocha/mocha.js"></script>
-	<script>
+	<script type="module">
 		// !!! DO NOT CHANGE !!!
 		// Our unit tests may run in environments without
 		// display (e.g. from builds) and tests may by
@@ -44,7 +44,7 @@
 	<script src="../../../out/vs/loader.js"></script>
 	<script src="../../../out-build/vs/loader.js"></script>
 
-	<script>
+	<script type="module">
 		const isBuild = urlParams.get('build');
 
 		// configure loader
