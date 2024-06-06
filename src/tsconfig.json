@@ -7,8 +7,11 @@
 		"sourceMap": false,
 		"allowJs": true,
 		"resolveJsonModule": true,
+		"allowSyntheticDefaultImports": true,
+		"esModuleInterop": true,
 		"isolatedModules": true,
 		"outDir": "../out/vs",
+		"module": "ESNext",
 		"types": [
 			"mocha",
 			"semver",
@@ -25,8 +28,8 @@
 		]
 	},
 	"include": [
-		"./bootstrap.js",
-		"./bootstrap-amd.js",
+		"bootstrap.cjs",
+		"bootstrap-amd.cjs",
 		"./bootstrap-fork.js",
 		"./bootstrap-node.js",
 		"./bootstrap-window.js",

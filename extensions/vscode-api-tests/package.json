@@ -55,6 +55,7 @@
     "workspaceTrust",
     "telemetry"
   ],
+  "type": "commonjs",
   "private": true,
   "activationEvents": [],
   "main": "./out/extension",

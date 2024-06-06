@@ -185,6 +185,7 @@ export abstract class AbstractWatcherClient extends Disposable {
 	private static readonly MAX_RESTARTS_PER_UNKNOWN_ERROR = 10; // how often we give the watcher a chance to restart on unknown errors (like crash)
 
 	private watcher: IWatcher | undefined;
+	// @ts-ignore
 	private readonly watcherDisposables = this._register(new MutableDisposable());
 
 	private requests: IWatchRequest[] | undefined = undefined;
@@ -193,8 +194,10 @@ export abstract class AbstractWatcherClient extends Disposable {
 	private restartsPerUnknownError = 0;
 
 	constructor(
+		// @ts-ignore
 		private readonly onFileChanges: (changes: IFileChange[]) => void,
 		private readonly onLogMessage: (msg: ILogMessage) => void,
+		// @ts-ignore
 		private verboseLogging: boolean,
 		private options: {
 			readonly type: string;
@@ -209,17 +212,17 @@ export abstract class AbstractWatcherClient extends Disposable {
 	protected init(): void {
 
 		// Associate disposables to the watcher
-		const disposables = new DisposableStore();
-		this.watcherDisposables.value = disposables;
+		// const disposables = new DisposableStore();
+		// this.watcherDisposables.value = disposables;
 
-		// Ask implementors to create the watcher
-		this.watcher = this.createWatcher(disposables);
-		this.watcher.setVerboseLogging(this.verboseLogging);
+		// // Ask implementors to create the watcher
+		// this.watcher = this.createWatcher(disposables);
+		// this.watcher.setVerboseLogging(this.verboseLogging);
 
-		// Wire in event handlers
-		disposables.add(this.watcher.onDidChangeFile(changes => this.onFileChanges(changes)));
-		disposables.add(this.watcher.onDidLogMessage(msg => this.onLogMessage(msg)));
-		disposables.add(this.watcher.onDidError(e => this.onError(e.error, e.request)));
+		// // Wire in event handlers
+		// disposables.add(this.watcher.onDidChangeFile(changes => this.onFileChanges(changes)));
+		// disposables.add(this.watcher.onDidLogMessage(msg => this.onLogMessage(msg)));
+		// disposables.add(this.watcher.onDidError(error => this.onError(error)));
 	}
 
 	protected onError(error: string, failedRequest?: IUniversalWatchRequest): void {

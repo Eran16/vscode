@@ -76,4 +76,3 @@ suite.skip('Server', () => {
 		assert.strictEqual((await onWrite2).seq, 1);
 	});
 });
-

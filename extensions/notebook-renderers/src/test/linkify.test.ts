@@ -46,4 +46,3 @@ suite('Notebook builtin output link detection', () => {
 		assert.equal(htmlWithLinks.textContent, 'something <a href="file.py">link</a> something');
 	});
 });
-

@@ -108,6 +108,20 @@ const RULES: IRule[] = [
 		]
 	},
 
+	// Common: vs/base/common/platform.ts
+	{
+		target: '**/vs/base/common/root.ts',
+		allowedTypes: [
+			...CORE_TYPES,
+
+			// Safe access to postMessage() and friends
+			'MessageEvent',
+		],
+		disallowedTypes: [],
+		disallowedDefinitions: [
+		]
+	},
+
 	// Common: vs/base/common/async.ts
 	{
 		target: '**/vs/base/common/async.ts',
@@ -180,9 +194,16 @@ const RULES: IRule[] = [
 		],
 		disallowedTypes: NATIVE_TYPES,
 		disallowedDefinitions: [
-			'lib.dom.d.ts', // no DOM
 			'@types/node'	// no node.js
 		]
+	},
+	{
+		target: '**/vs/workbench/api/node/extHostExtensionService.ts',
+		allowedTypes: [
+			...CORE_TYPES,
+		],
+		disallowedTypes: NATIVE_TYPES,
+		disallowedDefinitions: []
 	},
 
 	// Common: vs/workbench/api/common/extHostTypes.ts
