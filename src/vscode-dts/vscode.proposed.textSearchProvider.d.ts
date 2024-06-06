@@ -38,54 +38,59 @@ declare module 'vscode' {
 	}
 
 	/**
-	 * A file glob pattern to match file paths against.
-	 * TODO@roblourens merge this with the GlobPattern docs/definition in vscode.d.ts.
-	 * @see {@link GlobPattern}
-	 */
-	export type GlobString = string;
-
-	/**
 	 * Options common to file and text search
 	 */
 	export interface SearchOptions {
 		/**
 		 * The root folder to search within.
 		 */
-		folder: Uri;
+		folder?: Uri;
 
 		/**
 		 * Files that match an `includes` glob pattern should be included in the search.
 		 */
-		includes: GlobString[];
+		includes?: string[];
 
 		/**
 		 * Files that match an `excludes` glob pattern should be excluded from the search.
 		 */
-		excludes: GlobString[];
+		excludes?: string[];
+
+		/**
+		 * Whether files located at the workspace root that exclude files, like .gitignore, should be respected.
+		 * See the vscode setting `"search.useIgnoreFiles"` for more information.
+		 */
+		useLocalIgnoreFiles?: boolean;
+
+		/**
+		 * Whether symlinks should be followed while searching.
+		 * See the vscode setting `"search.followSymlinks"` for more information.
+		 */
+		followSymlinks?: boolean;
+
+		/**
+		 * Whether global files that exclude files, like .gitignore, should be respected.
+		 * See the vscode setting `"search.useGlobalIgnoreFiles"` for more information.
+		 */
+		useGlobalIgnoreFiles?: boolean;
+
+		/**
+		 * Whether files in parent directories that exclude files, like .gitignore, should be respected.
+		 * See the vscode setting `"search.useParentIgnoreFiles"` for more information.
+		 */
+		useParentIgnoreFiles?: boolean;
+
+		/**
+		 * The maximum number of results to be returned.
+		 */
+		maxResults: number;
 
 		/**
 		 * Whether external files that exclude files, like .gitignore, should be respected.
 		 * See the vscode setting `"search.useIgnoreFiles"`.
+		 * @deprecated
 		 */
-		useIgnoreFiles: boolean;
-
-		/**
-		 * Whether symlinks should be followed while searching.
-		 * See the vscode setting `"search.followSymlinks"`.
-		 */
-		followSymlinks: boolean;
-
-		/**
-		 * Whether global files that exclude files, like .gitignore, should be respected.
-		 * See the vscode setting `"search.useGlobalIgnoreFiles"`.
-		 */
-		useGlobalIgnoreFiles: boolean;
-
-		/**
-		 * Whether files in parent directories that exclude files, like .gitignore, should be respected.
-		 * See the vscode setting `"search.useParentIgnoreFiles"`.
-		 */
-		useParentIgnoreFiles: boolean;
+		useIgnoreFiles?: boolean;
 	}
 
 	/**
@@ -109,10 +114,6 @@ declare module 'vscode' {
 	 * Options that apply to text search.
 	 */
 	export interface TextSearchOptions extends SearchOptions {
-		/**
-		 * The maximum number of results to be returned.
-		 */
-		maxResults: number;
 
 		/**
 		 * Options to specify the size of the result text preview.
@@ -193,50 +194,25 @@ declare module 'vscode' {
 		message?: TextSearchCompleteMessage | TextSearchCompleteMessage[];
 	}
 
-	/**
-	 * A preview of the text result.
-	 */
-	export interface TextSearchMatchPreview {
-		/**
-		 * The matching lines of text, or a portion of the matching line that contains the match.
-		 */
-		text: string;
-
-		/**
-		 * The Range within `text` corresponding to the text of the match.
-		 * The number of matches must match the TextSearchMatch's range property.
-		 */
-		matches: Range | Range[];
-	}
-
-	/**
-	 * A match from a text search
-	 */
 	export interface TextSearchMatch {
-		/**
-		 * The uri for the matching document.
-		 */
-		uri: Uri;
+		ranges: {
+			/**
+			 * The range of the match within the document, or multiple ranges for multiple matches.
+			 */
+			sourceRange: Range;
+			/**
+			 * The Range within `previewText` corresponding to the text of the match.
+			 */
+			previewRange: Range;
+		}[];
 
-		/**
-		 * The range of the match within the document, or multiple ranges for multiple matches.
-		 */
-		ranges: Range | Range[];
-
-		/**
-		 * A preview of the text match.
-		 */
-		preview: TextSearchMatchPreview;
+		previewText: string;
 	}
 
 	/**
 	 * A line of context surrounding a TextSearchMatch.
 	 */
 	export interface TextSearchContext {
-		/**
-		 * The uri for the matching document.
-		 */
-		uri: Uri;
 
 		/**
 		 * One line of text.
@@ -250,7 +226,21 @@ declare module 'vscode' {
 		lineNumber: number;
 	}
 
-	export type TextSearchResult = TextSearchMatch | TextSearchContext;
+	interface TextSearchResult {
+		/**
+		 * The uri for the matching document.
+		 */
+		uri: Uri;
+		/**
+		 * The match corresponding to this result
+		 */
+		match: TextSearchMatch;
+		/**
+		 * Any applicable context lines
+		 */
+		beforeContext?: TextSearchContext[];
+		afterContext?: TextSearchContext[];
+	}
 
 	/**
 	 * A TextSearchProvider provides search results for text results inside files in the workspace.
