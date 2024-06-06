@@ -24,11 +24,13 @@ import { INativeHostMainService } from 'vs/platform/native/electron-main/nativeH
 import product from 'vs/platform/product/common/product';
 import { IProductService } from 'vs/platform/product/common/productService';
 import { IIPCObjectUrl, IProtocolMainService } from 'vs/platform/protocol/electron-main/protocol';
+import { isESM } from 'vs/base/common/amd';
 import { IStateService } from 'vs/platform/state/node/state';
 import { UtilityProcess } from 'vs/platform/utilityProcess/electron-main/utilityProcess';
 import { zoomLevelToZoomFactor } from 'vs/platform/window/common/window';
 import { ICodeWindow, IWindowState } from 'vs/platform/window/electron-main/window';
 import { IWindowsMainService } from 'vs/platform/windows/electron-main/windows';
+import { IWindowDevelopmentService } from 'vs/platform/windows/electron-main/windowDevService';
 
 const processExplorerWindowState = 'issue.processExplorerWindowState';
 
@@ -65,6 +67,7 @@ export class IssueMainService implements IIssueMainService {
 		@IProductService private readonly productService: IProductService,
 		@IStateService private readonly stateService: IStateService,
 		@IWindowsMainService private readonly windowsMainService: IWindowsMainService,
+		@IWindowDevelopmentService private readonly windowDevService: IWindowDevelopmentService,
 	) {
 		this.registerListeners();
 	}
@@ -172,9 +175,8 @@ export class IssueMainService implements IIssueMainService {
 					product
 				});
 
-				this.issueReporterWindow.loadURL(
-					FileAccess.asBrowserUri(`vs/workbench/contrib/issue/electron-sandbox/issueReporter${this.environmentMainService.isBuilt ? '' : '-dev'}.html`).toString(true)
-				);
+				const windowUrl = await this.windowDevService.appendDevSearchParams(FileAccess.asBrowserUri(`vs/workbench/contrib/issue/electron-sandbox/issueReporter${this.environmentMainService.isBuilt ? '' : '-dev'}.html`));
+				this.issueReporterWindow.loadURL(windowUrl.toString(true));
 
 				this.issueReporterWindow.on('close', () => {
 					this.issueReporterWindow = null;
@@ -223,9 +225,8 @@ export class IssueMainService implements IIssueMainService {
 					product
 				});
 
-				this.processExplorerWindow.loadURL(
-					FileAccess.asBrowserUri(`vs/code/electron-sandbox/processExplorer/processExplorer${this.environmentMainService.isBuilt ? '' : '-dev'}.html`).toString(true)
-				);
+				const windowUrl = await this.windowDevService.appendDevSearchParams(FileAccess.asBrowserUri(`vs/code/electron-sandbox/processExplorer/processExplorer${this.environmentMainService.isBuilt ? '' : '-dev'}.html`));
+				this.processExplorerWindow.loadURL(windowUrl.toString(true));
 
 				this.processExplorerWindow.on('close', () => {
 					this.processExplorerWindow = null;
@@ -423,7 +424,7 @@ export class IssueMainService implements IIssueMainService {
 			title: options.title,
 			backgroundColor: options.backgroundColor || IssueMainService.DEFAULT_BACKGROUND_COLOR,
 			webPreferences: {
-				preload: FileAccess.asFileUri('vs/base/parts/sandbox/electron-sandbox/preload.js').fsPath,
+				preload: FileAccess.asFileUri(`vs/base/parts/sandbox/electron-sandbox/preload${isESM ? '.cjs' : '.js'}`).fsPath,
 				additionalArguments: [`--vscode-window-config=${ipcObjectUrl.resource.toString()}`],
 				v8CacheOptions: this.environmentMainService.useCodeCache ? 'bypassHeatCheck' : 'none',
 				enableWebSQL: false,

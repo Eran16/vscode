@@ -12,7 +12,14 @@
  * @typedef {import('./vs/platform/environment/common/argv').NativeParsedArgs} NativeParsedArgs
  */
 
-const perf = require('./vs/base/common/performance');
+// ESM-comment-begin
+const isESM = false;
+// ESM-comment-end
+// ESM-uncomment-begin
+// const isESM = true;
+// ESM-uncomment-end
+const requireExtension = (isESM ? '.cjs' : '');
+const perf = require(`./vs/base/common/performance${requireExtension}`);
 perf.mark('code/didStartMain');
 
 const path = require('path');
@@ -20,9 +27,9 @@ const fs = require('fs');
 const os = require('os');
 const bootstrap = require('./bootstrap');
 const bootstrapNode = require('./bootstrap-node');
-const { getUserDataPath } = require('./vs/platform/environment/node/userDataPath');
-const { stripComments } = require('./vs/base/common/stripComments');
-const { getUNCHost, addUNCHostToAllowlist } = require('./vs/base/node/unc');
+const { getUserDataPath } = require(`./vs/platform/environment/node/userDataPath${requireExtension}`);
+const { stripComments } = require(`./vs/base/common/stripComments${requireExtension}`);
+const { getUNCHost, addUNCHostToAllowlist } = require(`./vs/base/node/unc${requireExtension}`);
 /** @type {Partial<IProductConfiguration>} */
 // @ts-ignore
 const product = require('../product.json');
@@ -128,7 +135,7 @@ const osLocale = processZhLocale(resolved.toLowerCase());
 const metaDataFile = path.join(__dirname, 'nls.metadata.json');
 const locale = getUserDefinedLocale(argvConfig);
 if (locale) {
-	const { getNLSConfiguration } = require('./vs/base/node/languagePacks');
+	const { getNLSConfiguration } = require(`./vs/base/node/languagePacks${requireExtension}`);
 	nlsConfigurationPromise = getNLSConfiguration(product.commit, userDataPath, metaDataFile, locale, osLocale);
 }
 
@@ -660,7 +667,7 @@ async function resolveNlsConfiguration() {
 	// See above the comment about the loader and case sensitiveness
 	appLocale = processZhLocale(appLocale.toLowerCase());
 
-	const { getNLSConfiguration } = require('./vs/base/node/languagePacks');
+	const { getNLSConfiguration } = require('./vs/base/node/languagePacks' + requireExtension);
 	nlsConfiguration = await getNLSConfiguration(product.commit, userDataPath, metaDataFile, appLocale, osLocale);
 	return nlsConfiguration ?? { locale: 'en', osLocale, availableLanguages: {} };
 }

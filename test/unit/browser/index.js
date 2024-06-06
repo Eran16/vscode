@@ -25,6 +25,7 @@ const minimist = require('minimist');
 /**
  * @type {{
  * run: string;
+ * esm: boolean;
  * grep: string;
  * runGlob: string;
  * browser: string;
@@ -38,7 +39,7 @@ const minimist = require('minimist');
  * }}
 */
 const args = minimist(process.argv.slice(2), {
-	boolean: ['build', 'debug', 'sequential', 'help'],
+	boolean: ['build', 'esm', 'debug', 'sequential', 'help'],
 	string: ['run', 'grep', 'runGlob', 'browser', 'reporter', 'reporter-options', 'tfs'],
 	default: {
 		build: false,
@@ -54,6 +55,7 @@ const args = minimist(process.argv.slice(2), {
 	},
 	describe: {
 		build: 'run with build output (out-build)',
+		esm: 'Assume ESM output',
 		run: 'only run tests matching <relative_file_path>',
 		grep: 'only run tests matching <pattern>',
 		debug: 'do not run browsers headless',
@@ -82,6 +84,8 @@ Options:
 --help, -h           show the help`);
 	process.exit(0);
 }
+
+const isDebug = !!args.debug;
 
 const withReporter = (function () {
 	if (args.tfs) {
@@ -230,7 +234,7 @@ async function runTestsInBrowser(testModules, browserType) {
 	const browser = await playwright[browserType].launch({ headless: !Boolean(args.debug), devtools: Boolean(args.debug) });
 	const context = await browser.newContext();
 	const page = await context.newPage();
-	const target = new URL(server.url + '/test/unit/browser/renderer.html');
+	const target = new URL(server.url + args.esm ? '/test/unit/browser/renderer-esm.html' : '/test/unit/browser/renderer.html');
 	target.searchParams.set('baseUrl', url.pathToFileURL(path.join(rootDir, 'src')).toString());
 	if (args.build) {
 		target.searchParams.set('build', 'true');
@@ -279,8 +283,10 @@ async function runTestsInBrowser(testModules, browserType) {
 	} catch (err) {
 		console.error(err);
 	}
-	server.dispose();
-	await browser.close();
+	if (!isDebug) {
+		await browser.close();
+		server?.close();
+	}
 
 	if (failingTests.length > 0) {
 		let res = `The followings tests are failing:\n - ${failingTests.map(({ title, message }) => `${title} (reason: ${message})`).join('\n - ')}`;
@@ -377,7 +383,9 @@ testModules.then(async modules => {
 			console.log(msg);
 		}
 	}
-	process.exit(didFail ? 1 : 0);
+	if (!isDebug) {
+		process.exit(didFail ? 1 : 0);
+	}
 
 }).catch(err => {
 	console.error(err);
