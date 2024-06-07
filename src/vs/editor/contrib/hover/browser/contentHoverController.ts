@@ -27,6 +27,7 @@ import { RenderedContentHover } from 'vs/editor/contrib/hover/browser/contentHov
 export class ContentHoverController extends Disposable implements IHoverWidget {
 
 	private _currentResult: HoverResult | null = null;
+	private _renderedContentHover: RenderedContentHover | undefined;
 
 	private readonly _computer: ContentHoverComputer;
 	private readonly _contentHoverWidget: ContentHoverWidget;
@@ -221,11 +222,11 @@ export class ContentHoverController extends Disposable implements IHoverWidget {
 
 	private _showHover(hoverResult: HoverResult): void {
 		const context = this._getHoverContext();
-		const renderedHover = new RenderedContentHover(this._editor, hoverResult, this._participants, this._computer, context, this._keybindingService);
-		if (renderedHover.domNodeHasChildren) {
-			this._contentHoverWidget.show(renderedHover);
+		this._renderedContentHover = new RenderedContentHover(this._editor, hoverResult, this._participants, this._computer, context, this._keybindingService);
+		if (this._renderedContentHover.domNodeHasChildren) {
+			this._contentHoverWidget.show(this._renderedContentHover);
 		} else {
-			renderedHover.dispose();
+			this._renderedContentHover.dispose();
 		}
 	}
 
@@ -305,13 +306,6 @@ export class ContentHoverController extends Disposable implements IHoverWidget {
 		this._markdownHoverParticipant?.updateMarkdownHoverVerbosityLevel(action, index, focus);
 	}
 
-	public focusedMarkdownHoverIndex(): number {
-		return this._markdownHoverParticipant?.focusedMarkdownHoverIndex() ?? -1;
-	}
-
-	public markdownHoverContentAtIndex(index: number): string {
-		return this._markdownHoverParticipant?.markdownHoverContentAtIndex(index) ?? '';
-	}
 
 	public doesMarkdownHoverAtIndexSupportVerbosityAction(index: number, action: HoverVerbosityAction): boolean {
 		return this._markdownHoverParticipant?.doesMarkdownHoverAtIndexSupportVerbosityAction(index, action) ?? false;
@@ -323,6 +317,22 @@ export class ContentHoverController extends Disposable implements IHoverWidget {
 			return undefined;
 		}
 		return node.textContent;
+	}
+
+	public getAccessibleWidgetContent(): string | undefined {
+		return this._renderedContentHover?.getAccessibleWidgetContent();
+	}
+
+	public getAccessibleWidgetContentAtIndex(index: number): string | undefined {
+		return this._renderedContentHover?.getAccessibleWidgetContentAtIndex(index);
+	}
+
+	public focusedMarkdownHoverIndex(): number {
+		return this._markdownHoverParticipant?.focusedMarkdownHoverIndex() ?? -1;
+	}
+
+	public focusedHoverPartIndex(): number {
+		return this._renderedContentHover?.focusedHoverPartIndex ?? -1;
 	}
 
 	public containsNode(node: Node | null | undefined): boolean {

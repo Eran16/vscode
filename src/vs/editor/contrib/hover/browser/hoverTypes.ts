@@ -120,13 +120,45 @@ export interface IEditorHoverRenderContext extends IEditorHoverContext {
 	readonly statusBar: IEditorHoverStatusBar;
 }
 
+export interface IRenderedHoverPart<T extends IHoverPart = IHoverPart> extends IDisposable {
+	/**
+	 * Rendered hover part.
+	 */
+	hoverPart: T;
+	/**
+	 * The HTML element containing the hover part.
+	 */
+	hoverElement: HTMLElement;
+}
+
+export interface IRenderedHoverParts<T extends IHoverPart = IHoverPart> extends IDisposable {
+	/**
+	 * Rendered hover part.
+	 */
+	renderedHoverParts: IRenderedHoverPart<T>[];
+}
+
+export class RenderedHoverParts<T extends IHoverPart = IHoverPart> implements IRenderedHoverParts {
+
+	constructor(
+		public readonly renderedHoverParts: IRenderedHoverPart<T>[]
+	) { }
+
+	dispose() {
+		for (const renderedHoverPart of this.renderedHoverParts) {
+			renderedHoverPart.dispose();
+		}
+	}
+}
+
 export interface IEditorHoverParticipant<T extends IHoverPart = IHoverPart> {
 	readonly hoverOrdinal: number;
 	suggestHoverAnchor?(mouseEvent: IEditorMouseEvent): HoverAnchor | null;
 	computeSync(anchor: HoverAnchor, lineDecorations: IModelDecoration[]): T[];
 	computeAsync?(anchor: HoverAnchor, lineDecorations: IModelDecoration[], token: CancellationToken): AsyncIterableObject<T>;
 	createLoadingMessage?(anchor: HoverAnchor): T | null;
-	renderHoverParts(context: IEditorHoverRenderContext, hoverParts: T[]): IDisposable;
+	renderHoverParts(context: IEditorHoverRenderContext, hoverParts: T[]): IRenderedHoverParts<T>;
+	getAccessibleContent(hoverPart: T): string;
 	handleResize?(): void;
 }
 
