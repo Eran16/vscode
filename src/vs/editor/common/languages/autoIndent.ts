@@ -404,6 +404,13 @@ export function getIndentActionForType(
 		return indentation;
 	}
 
+	const previousLineNumber = range.startLineNumber - 1;
+	const previousLine = model.getLineContent(previousLineNumber);
+	if (indentRulesSupport.shouldIndentNextLine(previousLine) && indentRulesSupport.shouldIncrease(textAroundRangeWithCharacter)) {
+		const r = getInheritIndentForLine(autoIndent, model, range.startLineNumber, false, languageConfigurationService);
+		return r?.indentation ?? null;
+	}
+
 	return null;
 }
 
