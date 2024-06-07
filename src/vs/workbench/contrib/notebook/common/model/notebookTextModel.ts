@@ -207,12 +207,27 @@ export class NotebookTextModel extends Disposable implements INotebookTextModel 
 		return this._cells;
 	}
 
+	*cellsForView(): Iterable<NotebookCellTextModel> {
+		if (this.viewType === 'repl') {
+			for (let i = 0; i < this._cells.length - 1; i++) {
+				yield this._cells[i];
+			}
+		} else {
+			yield* this._cells;
+		}
+	}
+
 	get versionId() {
 		return this._versionId;
 	}
 
 	get alternativeVersionId(): string {
 		return this._alternativeVersionId;
+	}
+
+	get notebookType() {
+		// the repl notebook type can handle all the same kernels as the jupyter notebook type
+		return this.viewType === 'repl' ? 'jupyter-notebook' : this.viewType;
 	}
 
 	constructor(

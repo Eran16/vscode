@@ -79,7 +79,8 @@ class NotebookModelReferenceCollection extends ReferenceCollection<Promise<IReso
 			);
 			this._workingCopyManagers.set(workingCopyTypeId, workingCopyManager);
 		}
-		const scratchPad = viewType === 'interactive' && this._configurationService.getValue<boolean>(NotebookSetting.InteractiveWindowPromptToSave) !== true;
+		const isScratchpadView = viewType === 'interactive' || viewType === 'repl';
+		const scratchPad = isScratchpadView && this._configurationService.getValue<boolean>(NotebookSetting.InteractiveWindowPromptToSave) !== true;
 		const model = this._instantiationService.createInstance(SimpleNotebookEditorModel, uri, hasAssociatedFilePath, viewType, workingCopyManager, scratchPad);
 		const result = await model.load({ limits });
 
@@ -219,8 +220,9 @@ export class NotebookModelResolverServiceImpl implements INotebookEditorModelRes
 			} else {
 				await this._extensionService.whenInstalledExtensionsRegistered();
 				const providers = this._notebookService.getContributedNotebookTypes(resource);
-				const exclusiveProvider = providers.find(provider => provider.exclusive);
-				viewType = exclusiveProvider?.id || providers[0]?.id;
+				viewType = providers.find(provider => provider.priority === 'exclusive')?.id ??
+					providers.find(provider => provider.priority === 'default')?.id ??
+					providers[0]?.id;
 			}
 		}
 
