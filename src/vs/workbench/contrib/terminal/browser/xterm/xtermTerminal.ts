@@ -270,6 +270,7 @@ export class XtermTerminal extends Disposable implements IXtermTerminal, IDetach
 		}));
 
 		// Load addons
+		this._setupXOFFXONHandling();
 		this._updateUnicodeVersion();
 		this._markNavigationAddon = this._instantiationService.createInstance(MarkNavigationAddon, _capabilities);
 		this.raw.loadAddon(this._markNavigationAddon);
@@ -420,6 +421,38 @@ export class XtermTerminal extends Disposable implements IXtermTerminal, IDetach
 			}
 		}
 	}
+
+	private _setupXOFFXONHandling() {
+		this.raw.onData(data => {
+			if (data === '\x13') { // XOFF (Ctrl+S)
+				this._showPauseNotification();
+			} else if (data === '\x11') { // XON (Ctrl+Q)
+				// Handling when XON is received could be added here.
+			}
+		});
+	}
+
+	private _showPauseNotification() {
+		const actions = [{
+			label: 'Resume',
+			run: () => this._sendResumeSignal()
+		}];
+		this._notificationService.prompt(
+			2, // Corresponds to severity level (info in this case).
+			'The terminal is paused. Press Ctrl+Q to resume.',
+			actions,  // Actions array containing the resume action.
+			{
+				sticky: true,
+				neverShowAgain: { id: 'terminalPauseNotification', isSecondary: true }
+			}
+		);
+	}
+
+	private _sendResumeSignal() {
+		this.raw.write('\x11'); // Send XON (Ctrl+Q) to resume terminal operations.
+	}
+
+
 
 	private _updateSmoothScrolling() {
 		this.raw.options.smoothScrollDuration = this._terminalConfigurationService.config.smoothScrolling && this._isPhysicalMouseWheel ? RenderConstants.SmoothScrollDuration : 0;
