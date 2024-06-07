@@ -329,6 +329,14 @@
 			async resolveConfiguration() {
 				return resolveConfiguration;
 			}
+		},
+
+		/**
+		 *
+		 * @type {import('./globals').IDeviceAccess}
+		 */
+		deviceAccess: {
+			handleDeviceAccess: callback => ipcRenderer.on('device-access', callback),
 		}
 	};
 
